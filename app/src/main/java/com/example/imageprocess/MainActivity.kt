@@ -21,8 +21,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var imageView: ImageView
-    private lateinit var saturationBtn: Button
     private lateinit var resetBtn: Button
+    private lateinit var saturationBtn: Button
+    private lateinit var lightnessBtn: Button
 
     private var workThread: HandlerThread? = null
     private var handler: Handler? = null
@@ -31,8 +32,6 @@ class MainActivity : AppCompatActivity() {
     private var tmpBitmapPixels: IntArray? = null
     private var bitmapWidth = -1
     private var bitmapHeight = -1
-
-    private var working = false
 
     private val mainHandler = MainHandler()
     private class MainHandler: Handler(Looper.getMainLooper()) {
@@ -57,8 +56,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         imageView = findViewById(R.id.imageView)
-        saturationBtn = findViewById(R.id.saturationBtn)
         resetBtn = findViewById(R.id.resetBtn)
+        saturationBtn = findViewById(R.id.saturationBtn)
+        lightnessBtn = findViewById(R.id.lightnessBtn)
         setupActionListener()
     }
 
@@ -93,6 +93,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionListener() {
+        // reset
         resetBtn.setOnClickListener {
             if (tmpBitmapPixels == null) {
                 Log.w(TAG, "setupActionListener: not modify origin bitmap")
@@ -113,18 +114,40 @@ class MainActivity : AppCompatActivity() {
             mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
         }
 
-        saturationBtn.setOnClickListener {
-            if (working) {
-                Log.d(TAG, "setupActionListener: working now")
-                return@setOnClickListener
-            }
-
+        // adjust brightness
+        lightnessBtn.setOnClickListener {
             handler?.post {
-                working = true
                 val count = originBitmapRgba!!.size / 4
                 val hsl = FloatArray(3)
                 if (tmpBitmapPixels == null) {
-                    tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4) // rgb
+                    tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
+                }
+                for (i in 0 until count) {
+                    val r = originBitmapRgba!![i * 4]
+                    val g = originBitmapRgba!![i * 4 + 1]
+                    val b = originBitmapRgba!![i * 4 + 2]
+                    val a = originBitmapRgba!![i * 4 + 3]
+                    ColorUtils.RGBToHSL(r, g, b, hsl)
+                    hsl[2] = hsl[2] * 1.5f
+                    val newColor = ColorUtils.HSLToColor(hsl)
+                    ColorUtils.setAlphaComponent(newColor, a)
+                    tmpBitmapPixels!![i] = newColor
+                }
+
+                val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
+                    0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
+                mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
+                mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
+            }
+        }
+
+        // adjust saturation
+        saturationBtn.setOnClickListener {
+            handler?.post {
+                val count = originBitmapRgba!!.size / 4
+                val hsl = FloatArray(3)
+                if (tmpBitmapPixels == null) {
+                    tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
                 }
                 for (i in 0 until count) {
                     val r = originBitmapRgba!![i * 4]
@@ -144,7 +167,6 @@ class MainActivity : AppCompatActivity() {
                         0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
                 mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
                 mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
-                working = false
             }
         }
     }

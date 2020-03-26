@@ -24,6 +24,15 @@
         app:layout_constraintLeft_toRightOf="@id/resetBtn"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <Button
+        android:id="@+id/lightnessBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="亮度"
+        android:layout_marginTop="24dp"
+        app:layout_constraintLeft_toRightOf="@id/saturationBtn"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
