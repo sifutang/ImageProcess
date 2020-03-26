@@ -11,8 +11,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.ColorUtils
 import com.example.imageprocess.utils.Util
 import java.lang.ref.WeakReference
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 
 class MainActivity : AppCompatActivity() {
@@ -89,17 +87,7 @@ class MainActivity : AppCompatActivity() {
                 val bitmap = (imageView.drawable as BitmapDrawable).bitmap
                 bitmapWidth = bitmap.width
                 bitmapHeight = bitmap.height
-                val buffer = ByteBuffer.allocate(bitmap.byteCount).order(ByteOrder.nativeOrder())
-                bitmap.copyPixelsToBuffer(buffer)
-                val rgba = buffer.array()
-                originBitmapRgba = IntArray(rgba.size)
-                val count = rgba.size / 4
-                for (i in 0 until count) {
-                    originBitmapRgba!![i * 4] = rgba[i * 4].toInt() and 0xff           // R
-                    originBitmapRgba!![i * 4 + 1] = rgba[i * 4 + 1].toInt() and 0xff   // G
-                    originBitmapRgba!![i * 4 + 2] = rgba[i * 4 + 2].toInt() and 0xff   // B
-                    originBitmapRgba!![i * 4 + 3] = rgba[i * 4 + 3].toInt() and 0xff   // A
-                }
+                originBitmapRgba = Util.fetchRgbaFromBitmap(bitmap)
             }
         }
     }
