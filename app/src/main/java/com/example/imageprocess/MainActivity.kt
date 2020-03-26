@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.ColorUtils
+import com.example.imageprocess.utils.Util
 import java.lang.ref.WeakReference
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -141,9 +142,13 @@ class MainActivity : AppCompatActivity() {
                     val r = originBitmapRgba!![i * 4]
                     val g = originBitmapRgba!![i * 4 + 1]
                     val b = originBitmapRgba!![i * 4 + 2]
+                    val a = originBitmapRgba!![i * 4 + 3]
                     ColorUtils.RGBToHSL(r, g, b, hsl)
-                    hsl[0] = hsl[0] + 127f * 0.5f
+                    var s = hsl[1] * 255 + 127 * 0.5f
+                    s = Util.clamp(s, 0f, 255f) / 255f
+                    hsl[1] = Util.clamp(s,0f, 1f)
                     val newColor = ColorUtils.HSLToColor(hsl)
+                    ColorUtils.setAlphaComponent(newColor, a)
                     tmpBitmapPixels!![i] = newColor
                 }
 
