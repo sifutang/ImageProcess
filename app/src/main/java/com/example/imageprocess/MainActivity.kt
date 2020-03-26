@@ -18,12 +18,16 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
         private const val UPDATE_IMAGE_VIEW = 1000
+        private const val SATURATION_RATIO = 1.5f
+        private const val LIGHTNESS_RATIO = 1.5f
+        private const val CONTRACT_RATIO = 2f
     }
 
     private lateinit var imageView: ImageView
     private lateinit var resetBtn: Button
     private lateinit var saturationBtn: Button
     private lateinit var lightnessBtn: Button
+    private lateinit var contrastBtn: Button
 
     private var workThread: HandlerThread? = null
     private var handler: Handler? = null
@@ -59,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         resetBtn = findViewById(R.id.resetBtn)
         saturationBtn = findViewById(R.id.saturationBtn)
         lightnessBtn = findViewById(R.id.lightnessBtn)
+        contrastBtn = findViewById(R.id.contrastBtn)
         setupActionListener()
     }
 
@@ -128,7 +133,7 @@ class MainActivity : AppCompatActivity() {
                     val b = originBitmapRgba!![i * 4 + 2]
                     val a = originBitmapRgba!![i * 4 + 3]
                     ColorUtils.RGBToHSL(r, g, b, hsl)
-                    hsl[2] = hsl[2] * 1.5f
+                    hsl[2] = hsl[2] * LIGHTNESS_RATIO
                     val newColor = ColorUtils.HSLToColor(hsl)
                     ColorUtils.setAlphaComponent(newColor, a)
                     tmpBitmapPixels!![i] = newColor
@@ -155,8 +160,7 @@ class MainActivity : AppCompatActivity() {
                     val b = originBitmapRgba!![i * 4 + 2]
                     val a = originBitmapRgba!![i * 4 + 3]
                     ColorUtils.RGBToHSL(r, g, b, hsl)
-                    var s = hsl[1] * 255 + 127 * 0.5f
-                    s = Util.clamp(s, 0f, 255f) / 255f
+                    val s = hsl[1]  * SATURATION_RATIO
                     hsl[1] = Util.clamp(s,0f, 1f)
                     val newColor = ColorUtils.HSLToColor(hsl)
                     ColorUtils.setAlphaComponent(newColor, a)
@@ -168,6 +172,41 @@ class MainActivity : AppCompatActivity() {
                 mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
                 mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
             }
+        }
+
+        // adjust contrast
+        contrastBtn.setOnClickListener {
+            if (tmpBitmapPixels == null) {
+                tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
+            }
+
+            val count = originBitmapRgba!!.size / 4
+            for (i in 0 until count) {
+                var r = originBitmapRgba!![i * 4]
+                var g = originBitmapRgba!![i * 4 + 1]
+                var b = originBitmapRgba!![i * 4 + 2]
+                val a = originBitmapRgba!![i * 4 + 3]
+
+                val cr = ((r / 255f) - 0.5f) * CONTRACT_RATIO
+                val cg = ((g / 255f) - 0.5f) * CONTRACT_RATIO
+                val cb = ((b / 255f) - 0.5f) * CONTRACT_RATIO
+
+                r = ((cr + 0.5f) * 255f).toInt()
+                g = ((cg + 0.5f) * 255f).toInt()
+                b = ((cb + 0.5f) * 255f).toInt()
+
+                val newColor = Color.rgb(
+                    Util.clamp(r, 0, 255),
+                    Util.clamp(g, 0, 255),
+                    Util.clamp(b, 0, 255)
+                )
+                ColorUtils.setAlphaComponent(newColor, a)
+                tmpBitmapPixels!![i] = newColor
+            }
+            val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
+                0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
+            mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
+            mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
         }
     }
 }

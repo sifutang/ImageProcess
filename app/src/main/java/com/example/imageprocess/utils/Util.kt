@@ -9,6 +9,10 @@ object Util {
         return if (amount < low) low else if (amount > high) high else amount
     }
 
+    fun clamp(amount: Int, low: Int, high: Int): Int {
+        return if (amount < low) low else if (amount > high) high else amount
+    }
+
     fun fetchRgbaFromBitmap(bitmap: Bitmap): IntArray {
         val buffer = ByteBuffer.allocate(bitmap.byteCount).order(ByteOrder.nativeOrder())
         bitmap.copyPixelsToBuffer(buffer)
