@@ -4,6 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.os.*
+import android.renderscript.Allocation
+import android.renderscript.Element
+import android.renderscript.RenderScript
+import android.renderscript.ScriptIntrinsicBlur
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
@@ -28,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var saturationBtn: Button
     private lateinit var lightnessBtn: Button
     private lateinit var contrastBtn: Button
+    private lateinit var blurBtn: Button
 
     private var workThread: HandlerThread? = null
     private var handler: Handler? = null
@@ -64,6 +69,7 @@ class MainActivity : AppCompatActivity() {
         saturationBtn = findViewById(R.id.saturationBtn)
         lightnessBtn = findViewById(R.id.lightnessBtn)
         contrastBtn = findViewById(R.id.contrastBtn)
+        blurBtn = findViewById(R.id.blurBtn)
         setupActionListener()
     }
 
@@ -176,37 +182,72 @@ class MainActivity : AppCompatActivity() {
 
         // adjust contrast
         contrastBtn.setOnClickListener {
-            if (tmpBitmapPixels == null) {
-                tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
+            handler?.post {
+                if (tmpBitmapPixels == null) {
+                    tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
+                }
+
+                val count = originBitmapRgba!!.size / 4
+                for (i in 0 until count) {
+                    var r = originBitmapRgba!![i * 4]
+                    var g = originBitmapRgba!![i * 4 + 1]
+                    var b = originBitmapRgba!![i * 4 + 2]
+                    val a = originBitmapRgba!![i * 4 + 3]
+
+                    val cr = ((r / 255f) - 0.5f) * CONTRACT_RATIO
+                    val cg = ((g / 255f) - 0.5f) * CONTRACT_RATIO
+                    val cb = ((b / 255f) - 0.5f) * CONTRACT_RATIO
+
+                    r = ((cr + 0.5f) * 255f).toInt()
+                    g = ((cg + 0.5f) * 255f).toInt()
+                    b = ((cb + 0.5f) * 255f).toInt()
+
+                    val newColor = Color.rgb(
+                        Util.clamp(r, 0, 255),
+                        Util.clamp(g, 0, 255),
+                        Util.clamp(b, 0, 255)
+                    )
+                    ColorUtils.setAlphaComponent(newColor, a)
+                    tmpBitmapPixels!![i] = newColor
+                }
+                val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
+                    0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
+                mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
+                mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
             }
+        }
 
-            val count = originBitmapRgba!!.size / 4
-            for (i in 0 until count) {
-                var r = originBitmapRgba!![i * 4]
-                var g = originBitmapRgba!![i * 4 + 1]
-                var b = originBitmapRgba!![i * 4 + 2]
-                val a = originBitmapRgba!![i * 4 + 3]
+        // blur btn
+        blurBtn.setOnClickListener {
+            handler?.post {
+                if (tmpBitmapPixels == null) {
+                    tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
+                }
+                val count = originBitmapRgba!!.size / 4
+                for (i in 0 until count) {
+                    val r = originBitmapRgba!![i * 4]
+                    val g = originBitmapRgba!![i * 4 + 1]
+                    val b = originBitmapRgba!![i * 4 + 2]
+                    val newColor = Color.rgb(r, g, b)
+                    tmpBitmapPixels!![i] = newColor
+                }
+                val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
+                        0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
 
-                val cr = ((r / 255f) - 0.5f) * CONTRACT_RATIO
-                val cg = ((g / 255f) - 0.5f) * CONTRACT_RATIO
-                val cb = ((b / 255f) - 0.5f) * CONTRACT_RATIO
+                val start = System.currentTimeMillis()
+                val renderScript = RenderScript.create(applicationContext)
+                val blurScript = ScriptIntrinsicBlur.create(renderScript, Element.U8_4(renderScript))
+                val allocation = Allocation.createFromBitmap(renderScript, bitmap)
 
-                r = ((cr + 0.5f) * 255f).toInt()
-                g = ((cg + 0.5f) * 255f).toInt()
-                b = ((cb + 0.5f) * 255f).toInt()
-
-                val newColor = Color.rgb(
-                    Util.clamp(r, 0, 255),
-                    Util.clamp(g, 0, 255),
-                    Util.clamp(b, 0, 255)
-                )
-                ColorUtils.setAlphaComponent(newColor, a)
-                tmpBitmapPixels!![i] = newColor
+                blurScript.setRadius(25f)
+                blurScript.setInput(allocation)
+                blurScript.forEach(allocation)
+                allocation.copyTo(bitmap)
+                Log.d(TAG, "setupActionListener: blur consume = ${System.currentTimeMillis() - start}")
+                blurScript.destroy()
+                mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
+                mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
             }
-            val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
-                0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
-            mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
-            mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
         }
     }
 }
