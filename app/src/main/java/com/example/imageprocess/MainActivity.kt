@@ -13,6 +13,7 @@ import android.widget.Button
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.ColorUtils
+import com.example.imageprocess.utils.RotateAnimation
 import com.example.imageprocess.utils.Util
 import java.lang.ref.WeakReference
 
@@ -104,6 +105,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionListener() {
+        imageView.setOnClickListener {
+            val centerX = imageView.width / 2
+            val centerY = imageView.height / 2
+            val animation = RotateAnimation(centerX, centerY, 0f, 180f, 50f)
+            animation.duration = 3000
+            animation.fillAfter = true
+            imageView.startAnimation(animation)
+        }
+
         // reset
         resetBtn.setOnClickListener {
             if (tmpBitmapPixels == null) {
