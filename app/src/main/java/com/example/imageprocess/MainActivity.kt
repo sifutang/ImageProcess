@@ -11,14 +11,16 @@ import android.renderscript.ScriptIntrinsicBlur
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.ColorUtils
+import com.example.imageprocess.utils.ImageProcessHelper
 import com.example.imageprocess.utils.RotateAnimation
 import com.example.imageprocess.utils.Util
 import java.lang.ref.WeakReference
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener {
 
     companion object {
         private const val TAG = "MainActivity"
@@ -34,6 +36,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lightnessBtn: Button
     private lateinit var contrastBtn: Button
     private lateinit var blurBtn: Button
+
+    private var sourceBitmap: Bitmap? = null
+
+    private var hue = 0f
+    private var saturation = 0f
+    private var lum = 0f
 
     private var workThread: HandlerThread? = null
     private var handler: Handler? = null
@@ -71,6 +79,11 @@ class MainActivity : AppCompatActivity() {
         lightnessBtn = findViewById(R.id.lightnessBtn)
         contrastBtn = findViewById(R.id.contrastBtn)
         blurBtn = findViewById(R.id.blurBtn)
+
+        findViewById<SeekBar>(R.id.hue_seek_bar).setOnSeekBarChangeListener(this)
+        findViewById<SeekBar>(R.id.saturation_seek_bar).setOnSeekBarChangeListener(this)
+        findViewById<SeekBar>(R.id.lum_seek_bar).setOnSeekBarChangeListener(this)
+
         setupActionListener()
     }
 
@@ -89,6 +102,7 @@ class MainActivity : AppCompatActivity() {
         workThread?.quitSafely()
         workThread = null
         handler = null
+
         mainHandler.setImageView(null)
         mainHandler.removeCallbacksAndMessages(null)
     }
@@ -121,18 +135,20 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val count = originBitmapRgba!!.size / 4
-            for (i in 0 until count) {
-                val r = originBitmapRgba!![i * 4]
-                val g = originBitmapRgba!![i * 4 + 1]
-                val b = originBitmapRgba!![i * 4 + 2]
-                val newColor = Color.rgb(r, g, b)
-                tmpBitmapPixels!![i] = newColor
+            handler?.post {
+                val count = originBitmapRgba!!.size / 4
+                for (i in 0 until count) {
+                    val r = originBitmapRgba!![i * 4]
+                    val g = originBitmapRgba!![i * 4 + 1]
+                    val b = originBitmapRgba!![i * 4 + 2]
+                    val newColor = Color.rgb(r, g, b)
+                    tmpBitmapPixels!![i] = newColor
+                }
+                val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
+                    0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
+                mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
+                mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
             }
-            val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
-                0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
-            mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
-            mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
         }
 
         // adjust brightness
@@ -259,5 +275,49 @@ class MainActivity : AppCompatActivity() {
                 mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
             }
         }
+    }
+
+    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+        when(seekBar?.id) {
+            R.id.hue_seek_bar -> {
+                hue = (progress - 127) * 1f / 127 * 180f
+            }
+            R.id.saturation_seek_bar -> {
+                saturation = 1f * progress / 127
+            }
+            R.id.lum_seek_bar -> {
+                lum = 1f * progress / 127
+            }
+        }
+
+        handler?.post {
+            if (sourceBitmap == null) {
+                if (tmpBitmapPixels == null) {
+                    tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
+                }
+
+                val count = originBitmapRgba!!.size / 4
+                for (i in 0 until count) {
+                    val r = originBitmapRgba!![i * 4]
+                    val g = originBitmapRgba!![i * 4 + 1]
+                    val b = originBitmapRgba!![i * 4 + 2]
+                    val newColor = Color.rgb(r, g, b)
+                    tmpBitmapPixels!![i] = newColor
+                }
+                val originBitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
+                    0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
+                sourceBitmap = originBitmap
+            }
+
+            val bitmap = ImageProcessHelper.adjustImage(sourceBitmap!!, hue, saturation, lum)
+            mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
+            mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
+        }
+    }
+
+    override fun onStartTrackingTouch(seekBar: SeekBar?) {
+    }
+
+    override fun onStopTrackingTouch(seekBar: SeekBar?) {
     }
 }

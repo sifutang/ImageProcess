@@ -51,14 +51,37 @@
         app:layout_constraintTop_toBottomOf="@+id/resetBtn"
         app:layout_constraintLeft_toLeftOf="@+id/resetBtn"/>
 
+    <SeekBar
+        android:id="@+id/hue_seek_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/blurBtn"
+        android:max="255"/>
+
+    <SeekBar
+        android:id="@+id/saturation_seek_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/hue_seek_bar"
+        android:max="255"/>
+
+    <SeekBar
+        android:id="@+id/lum_seek_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/saturation_seek_bar"
+        android:max="255"/>
+
     <ImageView
         android:id="@+id/imageView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
         android:src="@drawable/timg"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/lum_seek_bar"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
