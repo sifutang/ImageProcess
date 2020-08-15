@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener {
     private lateinit var lightnessBtn: Button
     private lateinit var contrastBtn: Button
     private lateinit var blurBtn: Button
+    private lateinit var awbBtn: Button
 
     private var sourceBitmap: Bitmap? = null
 
@@ -79,6 +80,7 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener {
         lightnessBtn = findViewById(R.id.lightnessBtn)
         contrastBtn = findViewById(R.id.contrastBtn)
         blurBtn = findViewById(R.id.blurBtn)
+        awbBtn =findViewById(R.id.awdBtn)
 
         findViewById<SeekBar>(R.id.hue_seek_bar).setOnSeekBarChangeListener(this)
         findViewById<SeekBar>(R.id.saturation_seek_bar).setOnSeekBarChangeListener(this)
@@ -271,6 +273,50 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener {
                 allocation.copyTo(bitmap)
                 Log.d(TAG, "setupActionListener: blur consume = ${System.currentTimeMillis() - start}")
                 blurScript.destroy()
+                mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
+                mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
+            }
+        }
+
+        // awb btn
+        awbBtn.setOnClickListener {
+            handler?.post {
+                if (tmpBitmapPixels == null) {
+                    tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
+                }
+
+                // calculate ag of R, G, B
+                var r = 0
+                var g = 0
+                var b = 0
+                val count = originBitmapRgba!!.size / 4
+                for (i in 0 until count) {
+                    r += originBitmapRgba!![i * 4]
+                    g += originBitmapRgba!![i * 4 + 1]
+                    b += originBitmapRgba!![i * 4 + 2]
+                }
+                r /= count
+                g /= count
+                b /= count
+                val gray = (r + g + b) / 3
+                val kR = 1f * gray / r
+                val kG = 1f * gray / g
+                val kB = 1f * gray / b
+                Log.e(TAG, "setupActionListener: kR = $kR, kG = $kG, kB = $kB, gray = $gray, r = $r, g = $g, b = $b")
+                for (i in 0 until count) {
+                    r = (originBitmapRgba!![i * 4] * kR).toInt()
+                    g = (originBitmapRgba!![i * 4 + 1] * kG).toInt()
+                    b = (originBitmapRgba!![i * 4 + 2] * kB).toInt()
+
+                    r = Util.clamp(r, 0, 255)
+                    g = Util.clamp(g, 0, 255)
+                    b = Util.clamp(b, 0, 255)
+
+                    val newColor = Color.rgb(r, g, b)
+                    tmpBitmapPixels!![i] = newColor
+                }
+                val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
+                    0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
                 mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
                 mainHandler.sendMessage(mainHandler.obtainMessage(UPDATE_IMAGE_VIEW, bitmap))
             }

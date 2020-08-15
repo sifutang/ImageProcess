@@ -51,6 +51,14 @@
         app:layout_constraintTop_toBottomOf="@+id/resetBtn"
         app:layout_constraintLeft_toLeftOf="@+id/resetBtn"/>
 
+    <Button
+        android:id="@+id/awdBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="白平衡"
+        app:layout_constraintTop_toTopOf="@+id/blurBtn"
+        app:layout_constraintLeft_toRightOf="@+id/blurBtn"/>
+
     <SeekBar
         android:id="@+id/hue_seek_bar"
         android:layout_width="match_parent"
@@ -79,7 +87,8 @@
         android:id="@+id/imageView"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:src="@drawable/timg"
+        android:scaleType="centerInside"
+        android:src="@drawable/awb02"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/lum_seek_bar"/>
