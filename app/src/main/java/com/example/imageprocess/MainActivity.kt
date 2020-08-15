@@ -285,7 +285,7 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener {
                     tmpBitmapPixels = IntArray(originBitmapRgba!!.size / 4)
                 }
 
-                // calculate ag of R, G, B
+                // 1. calculate K
                 var r = 0
                 var g = 0
                 var b = 0
@@ -299,10 +299,13 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener {
                 g /= count
                 b /= count
                 val gray = (r + g + b) / 3
+
+                // 2. calculate gain
                 val kR = 1f * gray / r
                 val kG = 1f * gray / g
                 val kB = 1f * gray / b
-                Log.e(TAG, "setupActionListener: kR = $kR, kG = $kG, kB = $kB, gray = $gray, r = $r, g = $g, b = $b")
+
+                // 3. calculate new color
                 for (i in 0 until count) {
                     r = (originBitmapRgba!![i * 4] * kR).toInt()
                     g = (originBitmapRgba!![i * 4 + 1] * kG).toInt()
@@ -315,6 +318,8 @@ class MainActivity : AppCompatActivity(), SeekBar.OnSeekBarChangeListener {
                     val newColor = Color.rgb(r, g, b)
                     tmpBitmapPixels!![i] = newColor
                 }
+
+                // 4. create bitmap and show
                 val bitmap = Bitmap.createBitmap(tmpBitmapPixels!!,
                     0, bitmapWidth, bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
                 mainHandler.removeMessages(UPDATE_IMAGE_VIEW)
